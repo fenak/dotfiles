@@ -18,6 +18,7 @@ NeoBundleFetch 'Shougo/neobundle.vim'
 " bundles
 " github
 NeoBundle 'ap/vim-css-color'
+NeoBundle 'jlanzarotta/bufexplorer'
 NeoBundle 'jnwhiteh/vim-golang'
 NeoBundle 'kien/ctrlp.vim'
 NeoBundle 'mileszs/ack.vim'
