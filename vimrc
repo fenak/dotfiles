@@ -21,10 +21,10 @@ NeoBundle 'ap/vim-css-color'
 NeoBundle 'jlanzarotta/bufexplorer'
 NeoBundle 'jnwhiteh/vim-golang'
 NeoBundle 'kien/ctrlp.vim'
-NeoBundle 'mileszs/ack.vim'
 NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'tpope/vim-surround'
 NeoBundle 'tpope/vim-rails'
+NeoBundle 'rking/ag.vim'
 NeoBundle 'scrooloose/nerdtree'
 
 call neobundle#end()
@@ -87,7 +87,7 @@ nnoremap <C-h> <C-w>h
 nnoremap <C-l> <C-w>l
 map <F2> :NERDTreeToggle<CR>
 nnoremap <leader><space> :noh<cr>
-nnoremap <leader>a :Ack<space>
+nnoremap <leader>a :Ag<space>
 nnoremap <leader>w <C-w><C-v>
 nnoremap Q <nop>
 nmap <C-c>r <Plug>SetTmuxVars
