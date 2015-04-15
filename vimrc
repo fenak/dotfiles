@@ -89,6 +89,7 @@ map <F2> :NERDTreeToggle<CR>
 nnoremap <leader><space> :noh<cr>
 nnoremap <leader>a :Ag<space>
 nnoremap <leader>w <C-w><C-v>
+nnoremap <leader><leader> :CtrlP<cr>
 nnoremap Q <nop>
 nmap <C-c>r <Plug>SetTmuxVars
 imap <c-l> <space>=><space>
