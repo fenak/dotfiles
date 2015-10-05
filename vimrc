@@ -17,15 +17,23 @@ NeoBundleFetch 'Shougo/neobundle.vim'
 
 " bundles
 " github
+NeoBundle 'airblade/vim-gitgutter'
 NeoBundle 'ap/vim-css-color'
+NeoBundle 'bling/vim-airline'
+NeoBundle 'kchmck/vim-coffee-script'
 NeoBundle 'jlanzarotta/bufexplorer'
+NeoBundle 'jgdavey/tslime.vim'
 NeoBundle 'jnwhiteh/vim-golang'
+NeoBundle 'justincampbell/vim-eighties'
 NeoBundle 'kien/ctrlp.vim'
+NeoBundle 'quanganhdo/grb256'
+NeoBundle 'thoughtbot/vim-rspec'
 NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'tpope/vim-surround'
 NeoBundle 'tpope/vim-rails'
 NeoBundle 'rking/ag.vim'
 NeoBundle 'scrooloose/nerdtree'
+NeoBundle 'slim-template/vim-slim'
 
 call neobundle#end()
 
@@ -46,6 +54,8 @@ set laststatus=2
 set backupdir=/tmp
 set directory=/tmp
 set shell=zsh
+set mouse=a
+set backspace=indent,eol,start
 syntax on
 autocmd CursorHold * checktime " hack for autoread
 
@@ -71,7 +81,7 @@ set number
 set statusline=%<%f\ (%{&ft})\ %-4(%m%)%=%-19(%3l,%02c%03V%)
 
 " colorscheme
-colorscheme hemisu-custom
+colorscheme grb256
 
 " for ruby, autoindent with two spaces, always expand tabs
 autocmd FileType ruby,yaml,cucumber set ai sw=2 sts=2 et
@@ -89,10 +99,23 @@ map <F2> :NERDTreeToggle<CR>
 nnoremap <leader><space> :noh<cr>
 nnoremap <leader>a :Ag<space>
 nnoremap <leader>w <C-w><C-v>
+map <Leader>t :call RunCurrentSpecFile()<cr>
+map <Leader>s :call RunNearestSpec()<cr>
+map <Leader>l :call RunLastSpec()<cr>
+map <Leader>A :call RunAllSpecs()<cr>
 nnoremap <leader><leader> :CtrlP<cr>
 nnoremap Q <nop>
 nmap <C-c>r <Plug>SetTmuxVars
 imap <c-l> <space>=><space>
+
+let g:airline_powerline_fonts = 1
+let g:rspec_command = 'call Send_to_Tmux("bundle exec rspec {spec}\n")'
+
+let g:eighties_enabled = 1
+let g:eighties_minimum_width = 80
+let g:eighties_extra_width = 60 " Increase this if you want some extra room
+let g:eighties_compute = 1 " Disable this if you just want the minimum + extra
+let g:eighties_bufname_additional_patterns = ['fugitiveblame'] " Defaults to [], 'fugitiveblame' is only an example. Takes a comma delimited list of bufnames as strings.
 
 " got from garybernhardt/dotfiles
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
