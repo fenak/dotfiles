@@ -20,6 +20,7 @@ NeoBundleFetch 'Shougo/neobundle.vim'
 NeoBundle 'airblade/vim-gitgutter'
 NeoBundle 'ap/vim-css-color'
 NeoBundle 'bling/vim-airline'
+NeoBundle 'cespare/vim-toml'
 NeoBundle 'kchmck/vim-coffee-script'
 NeoBundle 'jlanzarotta/bufexplorer'
 NeoBundle 'jgdavey/tslime.vim'
@@ -32,6 +33,7 @@ NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'tpope/vim-surround'
 NeoBundle 'tpope/vim-rails'
 NeoBundle 'rking/ag.vim'
+NeoBundle 'rust-lang/rust.vim'
 NeoBundle 'scrooloose/nerdtree'
 NeoBundle 'slim-template/vim-slim'
 
@@ -56,6 +58,7 @@ set directory=/tmp
 set shell=zsh
 set mouse=a
 set backspace=indent,eol,start
+set scrolloff=3
 syntax on
 autocmd CursorHold * checktime " hack for autoread
 
@@ -85,8 +88,9 @@ colorscheme grb256
 
 " for ruby, autoindent with two spaces, always expand tabs
 autocmd FileType ruby,yaml,cucumber set ai sw=2 sts=2 et
-autocmd FileType eruby,html,javascript,scss set sw=4 ts=4 sts=4 et
-autocmd FileType python,haskell set sw=4 sts=4 et
+autocmd FileType eruby,html,javascript,scss set sw=2 ts=2 sts=2 et
+autocmd FileType c,python,haskell set sw=4 sts=4 et
+autocmd FileType make set ai sw=4 ts=4 sts=4 noet
 
 " mappings
 nnoremap <C-J> <C-w>j<C-w>_
