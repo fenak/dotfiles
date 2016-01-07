@@ -30,6 +30,7 @@ NeoBundle 'kien/ctrlp.vim'
 NeoBundle 'quanganhdo/grb256'
 NeoBundle 'thoughtbot/vim-rspec'
 NeoBundle 'tpope/vim-fugitive'
+NeoBundle 'tpope/vim-haml'
 NeoBundle 'tpope/vim-surround'
 NeoBundle 'tpope/vim-rails'
 NeoBundle 'rking/ag.vim'
@@ -88,7 +89,7 @@ colorscheme grb256
 
 " for ruby, autoindent with two spaces, always expand tabs
 autocmd FileType ruby,yaml,cucumber set ai sw=2 sts=2 et
-autocmd FileType eruby,html,javascript,scss set sw=2 ts=2 sts=2 et
+autocmd FileType eruby,html,javascript,scss,haml set sw=2 ts=2 sts=2 et
 autocmd FileType c,python,haskell set sw=4 sts=4 et
 autocmd FileType make set ai sw=4 ts=4 sts=4 noet
 
@@ -113,13 +114,21 @@ nmap <C-c>r <Plug>SetTmuxVars
 imap <c-l> <space>=><space>
 
 let g:airline_powerline_fonts = 1
-let g:rspec_command = 'call Send_to_Tmux("bundle exec rspec {spec}\n")'
+let g:rspec_command = 'call Send_to_Tmux(RspecCommand() . " {spec}\n")'
 
 let g:eighties_enabled = 1
 let g:eighties_minimum_width = 80
 let g:eighties_extra_width = 60 " Increase this if you want some extra room
 let g:eighties_compute = 1 " Disable this if you just want the minimum + extra
 let g:eighties_bufname_additional_patterns = ['fugitiveblame'] " Defaults to [], 'fugitiveblame' is only an example. Takes a comma delimited list of bufnames as strings.
+
+function! RspecCommand()
+  if !empty(glob("bin/rspec"))
+    return "bin/rspec"
+  else
+    return "bundle exec rspec"
+  endif
+endfunction
 
 " got from garybernhardt/dotfiles
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
