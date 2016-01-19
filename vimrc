@@ -25,7 +25,6 @@ NeoBundle 'kchmck/vim-coffee-script'
 NeoBundle 'jlanzarotta/bufexplorer'
 NeoBundle 'jgdavey/tslime.vim'
 NeoBundle 'jnwhiteh/vim-golang'
-NeoBundle 'justincampbell/vim-eighties'
 NeoBundle 'kien/ctrlp.vim'
 NeoBundle 'quanganhdo/grb256'
 NeoBundle 'thoughtbot/vim-rspec'
@@ -115,12 +114,6 @@ imap <c-l> <space>=><space>
 
 let g:airline_powerline_fonts = 1
 let g:rspec_command = 'call Send_to_Tmux(RspecCommand() . " {spec}\n")'
-
-let g:eighties_enabled = 1
-let g:eighties_minimum_width = 80
-let g:eighties_extra_width = 60 " Increase this if you want some extra room
-let g:eighties_compute = 1 " Disable this if you just want the minimum + extra
-let g:eighties_bufname_additional_patterns = ['fugitiveblame'] " Defaults to [], 'fugitiveblame' is only an example. Takes a comma delimited list of bufnames as strings.
 
 function! RspecCommand()
   if !empty(glob("bin/rspec"))
