@@ -1,0 +1,22 @@
+# .zshrc.local
+
+if [ -f ~/.aliases ]; then
+    source $HOME/.aliases
+fi
+
+[ -s "$HOME/.scm_breeze/scm_breeze.sh" ] && source "$HOME/.scm_breeze/scm_breeze.sh"
+
+export ERL_AFLAGS="-kernel shell_history enabled"
+
+. $HOME/.asdf/asdf.sh
+. $HOME/.asdf/completions/asdf.bash
+
+DISABLE_AUTO_TITLE="true"
+PURE_PROMPT_SYMBOL=λ
+prompt pure
+
+## END OF FILE #################################################################
+# vim:filetype=zsh foldmethod=marker autoindent expandtab shiftwidth=4
+# Local variables:
+# mode: sh
+# End:
