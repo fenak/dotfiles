@@ -63,7 +63,8 @@ values."
      restclient
      (ruby :variables
            ruby-enable-enh-ruby-mode t
-           ruby-test-runner 'rspec)
+           ruby-test-runner 'rspec
+           ruby-version-manager 'rbenv)
      ruby-on-rails
      rust
      (shell :variables
@@ -411,6 +412,9 @@ you should place your code here."
 
     (when (system-type-mac-p)
       (setup-asdf-paths)))
+
+  ; https://github.com/syl20bnr/spacemacs/issues/11152
+  (setq projectile-keymap-prefix (kbd "C-c C-p"))
 
   ; highlight indent chars for python
   (setq highlight-indent-guides-method 'character)
