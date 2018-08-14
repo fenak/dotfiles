@@ -11,6 +11,9 @@ export ERL_AFLAGS="-kernel shell_history enabled"
 . $HOME/.asdf/asdf.sh
 . $HOME/.asdf/completions/asdf.bash
 
+eval "$(rbenv init -)"
+eval "$(pyenv init -)"
+
 DISABLE_AUTO_TITLE="true"
 PURE_PROMPT_SYMBOL=λ
 prompt pure
