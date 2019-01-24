@@ -1,18 +1,20 @@
 # .zshrc.local
 
+export ERL_AFLAGS="-kernel shell_history enabled"
+
 if [ -f ~/.aliases ]; then
     source $HOME/.aliases
 fi
 
-[ -s "$HOME/.scm_breeze/scm_breeze.sh" ] && source "$HOME/.scm_breeze/scm_breeze.sh"
-
-export ERL_AFLAGS="-kernel shell_history enabled"
+. $HOME/.nix-profile/etc/profile.d/nix.sh
 
 . $HOME/.asdf/asdf.sh
 . $HOME/.asdf/completions/asdf.bash
 
 eval "$(rbenv init -)"
 eval "$(pyenv init -)"
+
+[ -s "$HOME/.scm_breeze/scm_breeze.sh" ] && source "$HOME/.scm_breeze/scm_breeze.sh"
 
 DISABLE_AUTO_TITLE="true"
 PURE_PROMPT_SYMBOL=λ

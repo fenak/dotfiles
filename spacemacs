@@ -34,7 +34,8 @@ values."
      asciidoc
      auto-completion
      better-defaults
-     clojure
+     (clojure :variables
+              cider-test-defining-forms '("deftest" "defspec" "defexpect"))
      colors
      csv
      dash
@@ -57,21 +58,17 @@ values."
      octave
      org
      osx
-     (python :variables
-             python-enable-yapf-format-on-save t)
+     python
      react
-     restclient
      (ruby :variables
            ruby-enable-enh-ruby-mode t
            ruby-test-runner 'rspec
            ruby-version-manager 'rbenv)
-     ruby-on-rails
      rust
      (shell :variables
             shell-default-height 30
             shell-default-position 'bottom
             shell-default-shell 'ansi-term)
-     slack
      sql
      syntax-checking
      terraform
@@ -163,7 +160,7 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(smyx
+   dotspacemacs-themes '(doom-vibrant
                          spacemacs-light)
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
@@ -171,7 +168,7 @@ values."
    ;; quickly tweak the mode-line size to make separators look not too crappy.
    dotspacemacs-default-font '("Fira Code"
                                :size 14
-                               :weight light
+                               :weight normal
                                :width normal
                                :powerline-scale 1.2)
    ;; The leader key
@@ -323,10 +320,6 @@ values."
 (defun system-type-mac-p ()
   (string-equal system-type "darwin"))
 
-(defun disable-current-theme ()
-  (disable-theme (first dotspacemacs-themes))
-  )
-
 (defun load-doom-theme ()
   (require 'doom-themes)
   (load-theme 'doom-vibrant t)
@@ -380,6 +373,11 @@ values."
   (setq exec-path (append '("~/.asdf/shims") exec-path))
   )
 
+(defun setup-rust-paths ()
+  (setenv "PATH" (concat (getenv "HOME") "/.cargo/bin:" (getenv "PATH")))
+  (setq exec-path (append '("~/.cargo/bin") exec-path))
+  )
+
 (defun dotspacemacs/user-init ()
   "Initialization function for user code.
 It is called immediately after `dotspacemacs/init', before layer configuration
@@ -389,7 +387,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
   (setq frame-resize-pixelwise t)
   (setq custom-file "~/.spacemacs.custom")
-  ;(setq exec-path-from-shell-arguments '("-l"))
   )
 
 (defun dotspacemacs/user-config ()
@@ -399,28 +396,22 @@ layers configuration.
 This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
+
   (setq-default js-indent-level 2)
 
-  ; disable line highlight
+  ;; disable line highlight
   (global-hl-line-mode -1)
 
+  (load-doom-theme)
+
   (when (display-graphic-p)
-    (disable-current-theme)
     (load-doom-theme)
-    (setup-solaire-mode)
-    (setup-ligatures)
-
     (when (system-type-mac-p)
-      (setup-asdf-paths)))
+      (setup-asdf-paths)
+      (setup-rust-paths)))
 
-  ; https://github.com/syl20bnr/spacemacs/issues/11152
-  (setq projectile-keymap-prefix (kbd "C-c C-p"))
 
-  ; highlight indent chars for python
+  ;; highlight indent chars for python
   (setq highlight-indent-guides-method 'character)
   (add-hook 'python-mode-hook 'highlight-indent-guides-mode)
-
-  ; add rspec snippets
-  (eval-after-load 'rspec-mode
-    '(rspec-install-snippets))
   )
