@@ -160,7 +160,7 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(doom-vibrant
+   dotspacemacs-themes '(doom-one
                          spacemacs-light)
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
@@ -322,7 +322,7 @@ values."
 
 (defun load-doom-theme ()
   (require 'doom-themes)
-  (load-theme 'doom-vibrant t)
+  (load-theme 'doom-one t)
   (doom-themes-visual-bell-config)
   (doom-themes-neotree-config)
   (setq doom-neotree-file-icons t)
@@ -330,10 +330,12 @@ values."
 
 (defun setup-solaire-mode ()
   (require 'solaire-mode)
-  (add-hook 'after-change-major-mode-hook #'turn-on-solaire-mode)
+  (solaire-global-mode +1)
+  (add-hook 'ediff-prepare-buffer-hook #'solaire-mode)
   (add-hook 'after-revert-hook #'turn-on-solaire-mode)
   (add-hook 'minibuffer-setup-hook #'solaire-mode-in-minibuffer)
   (add-hook 'ediff-prepare-buffer-hook #'solaire-mode)
+  (solaire-mode-swap-bg)
   )
 
 (defun setup-ligatures ()
@@ -397,15 +399,16 @@ This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
 
+  (set-face-bold-p 'bold nil)
   (setq-default js-indent-level 2)
 
   ;; disable line highlight
   (global-hl-line-mode -1)
 
-  (load-doom-theme)
-
   (when (display-graphic-p)
     (load-doom-theme)
+    (setup-solaire-mode)
+    (setup-ligatures)
     (when (system-type-mac-p)
       (setup-asdf-paths)
       (setup-rust-paths)))

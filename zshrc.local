@@ -6,8 +6,6 @@ if [ -f ~/.aliases ]; then
     source $HOME/.aliases
 fi
 
-. $HOME/.nix-profile/etc/profile.d/nix.sh
-
 . $HOME/.asdf/asdf.sh
 . $HOME/.asdf/completions/asdf.bash
 
