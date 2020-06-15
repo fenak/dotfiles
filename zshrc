@@ -431,11 +431,22 @@ ZSH_NO_DEFAULT_LOCALE=${ZSH_NO_DEFAULT_LOCALE:-0}
 
 typeset -ga ls_options
 typeset -ga grep_options
+
+# Colors on GNU ls(1)
 if ls --color=auto / >/dev/null 2>&1; then
     ls_options+=( --color=auto )
+# Colors on FreeBSD and OSX ls(1)
 elif ls -G / >/dev/null 2>&1; then
     ls_options+=( -G )
 fi
+
+# Natural sorting order on GNU ls(1)
+# OSX and IllumOS have a -v option that is not natural sorting
+if ls --version |& grep -q 'GNU' >/dev/null 2>&1 && ls -v / >/dev/null 2>&1; then
+    ls_options+=( -v )
+fi
+
+# Color on GNU and FreeBSD grep(1)
 if grep --color=auto -q "a" <<< "a" >/dev/null 2>&1; then
     grep_options+=( --color=auto )
 fi
@@ -659,7 +670,10 @@ fi
 # completion system
 COMPDUMPFILE=${COMPDUMPFILE:-${ZDOTDIR:-${HOME}}/.zcompdump}
 if zrcautoload compinit ; then
-    compinit -d ${COMPDUMPFILE} || print 'Notice: no compinit available :('
+    typeset -a tmp
+    zstyle -a ':grml:completion:compinit' arguments tmp
+    compinit -d ${COMPDUMPFILE} "${tmp[@]}" || print 'Notice: no compinit available :('
+    unset tmp
 else
     print 'Notice: no compinit available :('
     function compdef { }
@@ -823,8 +837,18 @@ function grmlcomp () {
         _ssh_hosts=()
         _etc_hosts=()
     fi
+
+    local localname
+    if check_com hostname ; then
+      localname=$(hostname)
+    elif check_com hostnamectl ; then
+      localname=$(hostnamectl --static)
+    else
+      localname="$(uname -n)"
+    fi
+
     hosts=(
-        $(hostname)
+        "${localname}"
         "$_ssh_config_hosts[@]"
         "$_ssh_hosts[@]"
         "$_etc_hosts[@]"
@@ -881,7 +905,7 @@ zle -N end-of-somewhere beginning-or-end-of-somewhere
 
 # add a command line to the shells history without executing it
 function commit-to-history () {
-    print -s ${(z)BUFFER}
+    print -rs ${(z)BUFFER}
     zle send-break
 }
 zle -N commit-to-history
@@ -1208,7 +1232,7 @@ function help_zle_parse_keybindings () {
     help_zle_keybindings['<Alt><arg>']="repeat next cmd/char <arg> times (<Alt>-<Alt>1<Alt>0a -> -10 times 'a')"
     help_zle_keybindings['<Alt>u']="make next word Uppercase"
     help_zle_keybindings['<Alt>l']="make next word lowercase"
-    help_zle_keybindings['<Ctrl>xd']="preview expansion under cursor"
+    help_zle_keybindings['<Ctrl>xG']="preview expansion under cursor"
     help_zle_keybindings['<Alt>q']="push current CL into background, freeing it. Restore on next CL"
     help_zle_keybindings['<Alt>.']="insert (and interate through) last word from prev CLs"
     help_zle_keybindings['<Alt>,']="complete word from newer history (consecutive hits)"
@@ -1842,7 +1866,7 @@ done
 function batterydarwin () {
 GRML_BATTERY_LEVEL=''
 local -a table
-table=( ${$(pmset -g ps)[(w)7,8]%%(\%|);} )
+table=( ${$(pmset -g ps)[(w)8,9]%%(\%|);} )
 if [[ -n $table[2] ]] ; then
     case $table[2] in
         charging)
@@ -2255,6 +2279,7 @@ grml_theme_add_token: Token `%s'\'' exists! Giving up!\n\n' $name
         return 2
     fi
     if (( init )); then
+        REPLY=''
         $token $name
         token=$REPLY
     fi
@@ -2300,6 +2325,7 @@ function grml_prompt_addto () {
         zstyle -s ":prompt:${grmltheme}:${lr}:items:$it" token new \
             || new=${grml_prompt_token_default[$it]}
         if (( ${+grml_prompt_token_function[$it]} )); then
+            REPLY=''
             ${grml_prompt_token_function[$it]} $it
         else
             case $it in
@@ -2493,8 +2519,11 @@ function grml_vcs_to_screen_title () {
 }
 
 function grml_maintain_name () {
-    # set hostname if not running on host with name 'grml'
-    if [[ -n "$HOSTNAME" ]] && [[ "$HOSTNAME" != $(hostname) ]] ; then
+    local localname
+    localname="$(uname -n)"
+
+    # set hostname if not running on local machine
+    if [[ -n "$HOSTNAME" ]] && [[ "$HOSTNAME" != "${localname}" ]] ; then
        NAME="@$HOSTNAME"
     fi
 }
@@ -2511,7 +2540,7 @@ function grml_cmd_to_screen_title () {
 function grml_control_xterm_title () {
     case $TERM in
         (xterm*|rxvt*)
-            set_title "${(%):-"%n@%m:"}" "$1"
+            set_title "${(%):-"%n@%m:"}" "$2"
             ;;
     esac
 }
@@ -2691,22 +2720,24 @@ Enjoy your grml system with the zsh!$reset_color"
 # debian stuff
 if [[ -r /etc/debian_version ]] ; then
     if [[ -z "$GRML_NO_APT_ALIASES" ]]; then
-        #a3# Execute \kbd{apt-cache search}
-        alias acs='apt-cache search'
-        #a3# Execute \kbd{apt-cache show}
-        alias acsh='apt-cache show'
         #a3# Execute \kbd{apt-cache policy}
         alias acp='apt-cache policy'
         if check_com -c apt ; then
+          #a3# Execute \kbd{apt search}
+          alias acs='apt search'
+          #a3# Execute \kbd{apt show}
+          alias acsh='apt show'
           #a3# Execute \kbd{apt dist-upgrade}
           salias adg="apt dist-upgrade"
           #a3# Execute \kbd{apt upgrade}
           salias ag="apt upgrade"
           #a3# Execute \kbd{apt install}
           salias agi="apt install"
-          #a3# Execute \kbd{apt-get update}
+          #a3# Execute \kbd{apt update}
           salias au="apt update"
         else
+          alias acs='apt-cache search'
+          alias acsh='apt-cache show'
           salias adg="apt-get dist-upgrade"
           salias ag="apt-get upgrade"
           salias agi="apt-get install"
@@ -2910,9 +2941,6 @@ function sll () {
     return ${RTN}
 }
 
-# TODO: Is it supported to use pager settings like this?
-#   PAGER='less -Mr' - If so, the use of $PAGER here needs fixing
-# with respect to wordsplitting. (ie. ${=PAGER})
 if check_com -c $PAGER ; then
     #f3# View Debian's changelog of given package(s)
     function dchange () {
@@ -2920,13 +2948,28 @@ if check_com -c $PAGER ; then
         [[ -z "$1" ]] && printf 'Usage: %s <package_name(s)>\n' "$0" && return 1
 
         local package
+
+        # `less` as $PAGER without e.g. `|lesspipe %s` inside $LESSOPEN can't properly
+        # read *.gz files, try to detect this to use vi instead iff available
+        local viewer
+
+        if [[ ${$(typeset -p PAGER)[2]} = -a ]] ; then
+          viewer=($PAGER)    # support PAGER=(less -Mr) but leave array untouched
+        else
+          viewer=(${=PAGER}) # support PAGER='less -Mr'
+        fi
+
+        if [[ ${viewer[1]:t} = less ]] && [[ -z "${LESSOPEN}" ]] && check_com vi ; then
+          viewer='vi'
+        fi
+
         for package in "$@" ; do
             if [[ -r /usr/share/doc/${package}/changelog.Debian.gz ]] ; then
-                $PAGER /usr/share/doc/${package}/changelog.Debian.gz
+                $viewer /usr/share/doc/${package}/changelog.Debian.gz
             elif [[ -r /usr/share/doc/${package}/changelog.gz ]] ; then
-                $PAGER /usr/share/doc/${package}/changelog.gz
+                $viewer /usr/share/doc/${package}/changelog.gz
             elif [[ -r /usr/share/doc/${package}/changelog ]] ; then
-                $PAGER /usr/share/doc/${package}/changelog
+                $viewer /usr/share/doc/${package}/changelog
             else
                 if check_com -c aptitude ; then
                     echo "No changelog for package $package found, using aptitude to retrieve it."
@@ -3255,7 +3298,7 @@ fi
 #f5# Backup \kbd{file_or_folder {\rm to} file_or_folder\_timestamp}
 function bk () {
     emulate -L zsh
-    local current_date=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
+    local current_date=$(date -u "+%Y%m%dT%H%M%SZ")
     local clean keep move verbose result all to_bk
     setopt extended_glob
     keep=1
@@ -3312,14 +3355,14 @@ return 0;;
     elif (( clean > 0 )); then
         if (( $# > 0 )); then
             for to_bk in "$@"; do
-                rm $verbose -rf "${to_bk%/}"_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z
+                rm $verbose -rf "${to_bk%/}"_[0-9](#c8)T([0-1][0-9]|2[0-3])([0-5][0-9])(#c2)Z
                 (( result += $? ))
             done
         else
             if (( all > 0 )); then
-                rm $verbose -rf *_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z(D)
+                rm $verbose -rf *_[0-9](#c8)T([0-1][0-9]|2[0-3])([0-5][0-9])(#c2)Z(D)
             else
-                rm $verbose -rf *_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z
+                rm $verbose -rf *_[0-9](#c8)T([0-1][0-9]|2[0-3])([0-5][0-9])(#c2)Z
             fi
             (( result += $? ))
         fi
@@ -3445,6 +3488,11 @@ function simple-extract () {
                 USES_STDIN=true
                 USES_STDOUT=false
                 ;;
+            *tar.zst)
+                DECOMP_CMD="tar --zstd -xvf -"
+                USES_STDIN=true
+                USES_STDOUT=false
+                ;;
             *tar)
                 DECOMP_CMD="tar -xvf -"
                 USES_STDIN=true
@@ -3487,6 +3535,11 @@ function simple-extract () {
                 ;;
             *(xz|lzma))
                 DECOMP_CMD="xz -d -c -"
+                USES_STDIN=true
+                USES_STDOUT=true
+                ;;
+            *zst)
+                DECOMP_CMD="zstd -d -c -"
                 USES_STDIN=true
                 USES_STDOUT=true
                 ;;
@@ -3717,7 +3770,10 @@ if check_com -c hg ; then
 
 fi # end of check whether we have the 'hg'-executable
 
-# grml-small cleanups
+# disable bracketed paste mode for dumb terminals
+[[ "$TERM" == dumb ]] && unset zle_bracketed_paste
+
+# grml-small cleanups and workarounds
 
 # The following is used to remove zsh-config-items that do not work
 # in grml-small by default.
@@ -3726,6 +3782,8 @@ fi # end of check whether we have the 'hg'-executable
 # sources if it is there).
 
 if (( GRMLSMALL_SPECIFIC > 0 )) && isgrmlsmall ; then
+
+    # Clean up
 
     unset "abk[V]"
     unalias    'V'      &> /dev/null
@@ -3737,6 +3795,36 @@ if (( GRMLSMALL_SPECIFIC > 0 )) && isgrmlsmall ; then
     unfunction manzsh   &> /dev/null
     unfunction man2     &> /dev/null
 
+    # Workarounds
+
+    # See https://github.com/grml/grml/issues/56
+    if ! [[ -x ${commands[dig]} ]]; then
+        function dig_after_all () {
+            unfunction dig
+            unfunction _dig
+            autoload -Uz _dig
+            unfunction dig_after_all
+        }
+        function dig () {
+            if [[ -x ${commands[dig]} ]]; then
+                dig_after_all
+                command dig "$@"
+                return "$!"
+            fi
+            printf 'This installation does not include `dig'\'' for size reasons.\n'
+            printf 'Try `drill'\'' as a light weight alternative.\n'
+            return 0
+        }
+        function _dig () {
+            if [[ -x ${commands[dig]} ]]; then
+                dig_after_all
+                zle -M 'Found `dig'\'' installed. '
+            else
+                zle -M 'Try `drill'\'' instead of `dig'\''.'
+            fi
+        }
+        compdef _dig dig
+    fi
 fi
 
 zrclocal
