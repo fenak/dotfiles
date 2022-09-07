@@ -1,18 +1,20 @@
 format = """
 $username\
 $hostname\
-$kubernetes\
-$aws\
-$line_break\
 $directory\
 $git_branch\
 $git_state\
 $git_status\
 $cmd_duration\
 $docker_context\
+$aws\
 $line_break\
 $python\
+$kubernetes\
 $character"""
+
+[aws]
+format = '[$symbol($profile)(\($region\))(\[$duration\])]($style)'
 
 [character]
 success_symbol = "[❯](bold green)"
