@@ -108,11 +108,75 @@ if [[ $ZSH_PROFILE_RC -gt 0 ]] ; then
     zmodload zsh/zprof
 fi
 
+typeset -A GRML_STATUS_FEATURES
+
+function grml_status_feature () {
+    emulate -L zsh
+    local f=$1
+    local -i success=$2
+    if (( success == 0 )); then
+        GRML_STATUS_FEATURES[$f]=success
+    else
+        GRML_STATUS_FEATURES[$f]=failure
+    fi
+    return 0
+}
+
+function grml_status_features () {
+    emulate -L zsh
+    local mode=${1:-+-}
+    local this
+    if [[ $mode == -h ]] || [[ $mode == --help ]]; then
+        cat <<EOF
+grml_status_features [-h|--help|-|+|+-|FEATURE]
+
+Prints a summary of features the grml setup is trying to load. The
+result of loading a feature is recorded. This function lets you query
+the result.
+
+The function takes one argument: "-h" or "--help" to display this help
+text, "+" to display a list of all successfully loaded features, "-" for
+a list of all features that failed to load. "+-" to show a list of all
+features with their statuses.
+
+Any other word is considered to by a feature and prints its status.
+
+The default mode is "+-".
+EOF
+        return 0
+    fi
+    if [[ $mode != - ]] && [[ $mode != + ]] && [[ $mode != +- ]]; then
+        this="${GRML_STATUS_FEATURES[$mode]}"
+        if [[ -z $this ]]; then
+            printf 'unknown\n'
+            return 1
+        else
+            printf '%s\n' $this
+        fi
+        return 0
+    fi
+    for key in ${(ok)GRML_STATUS_FEATURES}; do
+        this="${GRML_STATUS_FEATURES[$key]}"
+        if [[ $this == success ]] && [[ $mode == *+* ]]; then
+            printf '%-16s %s\n' $key $this
+        fi
+        if [[ $this == failure ]] && [[ $mode == *-* ]]; then
+            printf '%-16s %s\n' $key $this
+        fi
+    done
+    return 0
+}
+
 # load .zshrc.pre to give the user the chance to overwrite the defaults
 [[ -r ${ZDOTDIR:-${HOME}}/.zshrc.pre ]] && source ${ZDOTDIR:-${HOME}}/.zshrc.pre
 
 # check for version/system
 # check for versions (compatibility reasons)
+function is51 () {
+    [[ $ZSH_VERSION == 5.<1->* ]] && return 0
+    return 1
+}
+
 function is4 () {
     [[ $ZSH_VERSION == <4->* ]] && return 0
     return 1
@@ -368,10 +432,6 @@ is4 && setopt share_history
 # save each command's beginning timestamp and the duration to the history file
 setopt extended_history
 
-# If a new command line being added to the history list duplicates an older
-# one, the older command is removed from the list
-is4 && setopt histignorealldups
-
 # remove command lines from the history list when the first character on the
 # line is a space
 setopt histignorespace
@@ -421,6 +481,7 @@ setopt unset
 
 # setting some default values
 NOCOR=${NOCOR:-0}
+NOETCHOSTS=${NOETCHOSTS:-0}
 NOMENU=${NOMENU:-0}
 NOPRECMD=${NOPRECMD:-0}
 COMMAND_NOT_FOUND=${COMMAND_NOT_FOUND:-0}
@@ -657,7 +718,8 @@ typeset -U path PATH cdpath CDPATH fpath FPATH manpath MANPATH
 # Load a few modules
 is4 && \
 for mod in parameter complist deltochar mathfunc ; do
-    zmodload -i zsh/${mod} 2>/dev/null || print "Notice: no ${mod} available :("
+    zmodload -i zsh/${mod} 2>/dev/null
+    grml_status_feature mod:$mod $?
 done && builtin unset -v mod
 
 # autoload zsh modules when they are referenced
@@ -672,10 +734,11 @@ COMPDUMPFILE=${COMPDUMPFILE:-${ZDOTDIR:-${HOME}}/.zcompdump}
 if zrcautoload compinit ; then
     typeset -a tmp
     zstyle -a ':grml:completion:compinit' arguments tmp
-    compinit -d ${COMPDUMPFILE} "${tmp[@]}" || print 'Notice: no compinit available :('
+    compinit -d ${COMPDUMPFILE} "${tmp[@]}"
+    grml_status_feature compinit $?
     unset tmp
 else
-    print 'Notice: no compinit available :('
+    grml_status_feature compinit 1
     function compdef { }
 fi
 
@@ -831,7 +894,7 @@ function grmlcomp () {
     if is42 ; then
         [[ -r ~/.ssh/config ]] && _ssh_config_hosts=(${${(s: :)${(ps:\t:)${${(@M)${(f)"$(<$HOME/.ssh/config)"}:#Host *}#Host }}}:#*[*?]*}) || _ssh_config_hosts=()
         [[ -r ~/.ssh/known_hosts ]] && _ssh_hosts=(${${${${(f)"$(<$HOME/.ssh/known_hosts)"}:#[\|]*}%%\ *}%%,*}) || _ssh_hosts=()
-        [[ -r /etc/hosts ]] && : ${(A)_etc_hosts:=${(s: :)${(ps:\t:)${${(f)~~"$(</etc/hosts)"}%%\#*}##[:blank:]#[^[:blank:]]#}}} || _etc_hosts=()
+        [[ -r /etc/hosts ]] && [[ "$NOETCHOSTS" -eq 0 ]] && : ${(A)_etc_hosts:=${(s: :)${(ps:\t:)${${(f)~~"$(grep -v '^0\.0\.0.\0\|^127\.0\.0\.1\|^::1 ' /etc/hosts)"}%%\#*}##[:blank:]#[^[:blank:]]#}}} || _etc_hosts=()
     else
         _ssh_config_hosts=()
         _ssh_hosts=()
@@ -839,14 +902,7 @@ function grmlcomp () {
     fi
 
     local localname
-    if check_com hostname ; then
-      localname=$(hostname)
-    elif check_com hostnamectl ; then
-      localname=$(hostnamectl --static)
-    else
-      localname="$(uname -n)"
-    fi
-
+    localname="$(uname -n)"
     hosts=(
         "${localname}"
         "$_ssh_config_hosts[@]"
@@ -1134,10 +1190,15 @@ zle -N grml-zsh-fg
 # run command line as user root via sudo:
 function sudo-command-line () {
     [[ -z $BUFFER ]] && zle up-history
-    if [[ $BUFFER != sudo\ * ]]; then
-        BUFFER="sudo $BUFFER"
-        CURSOR=$(( CURSOR+5 ))
+    local cmd="sudo "
+    if [[ ${BUFFER} == ${cmd}* ]]; then
+        CURSOR=$(( CURSOR-${#cmd} ))
+        BUFFER="${BUFFER#$cmd}"
+    else
+        BUFFER="${cmd}${BUFFER}"
+        CURSOR=$(( CURSOR+${#cmd} ))
     fi
+    zle reset-prompt
 }
 zle -N sudo-command-line
 
@@ -1584,7 +1645,13 @@ zrcautoload zed
 # else
 #    print 'Notice: no url-quote-magic available :('
 # fi
-alias url-quote='autoload -U url-quote-magic ; zle -N self-insert url-quote-magic'
+if is51 ; then
+  # url-quote doesn't work without bracketed-paste-magic since Zsh 5.1
+  alias url-quote='autoload -U bracketed-paste-magic url-quote-magic;
+                   zle -N bracketed-paste bracketed-paste-magic; zle -N self-insert url-quote-magic'
+else
+  alias url-quote='autoload -U url-quote-magic ; zle -N self-insert url-quote-magic'
+fi
 
 #m# k ESC-h Call \kbd{run-help} for the 1st word on the command line
 alias run-help >&/dev/null && unalias run-help
@@ -2433,6 +2500,7 @@ function grml_prompt_fallback () {
 }
 
 if zrcautoload promptinit && promptinit 2>/dev/null ; then
+    grml_status_feature promptinit 0
     # Since we define the required functions in here and not in files in
     # $fpath, we need to stick the theme's name into `$prompt_themes'
     # ourselves, since promptinit does not pick them up otherwise.
@@ -2440,7 +2508,7 @@ if zrcautoload promptinit && promptinit 2>/dev/null ; then
     # Also, keep the array sorted...
     prompt_themes=( "${(@on)prompt_themes}" )
 else
-    print 'Notice: no promptinit available :('
+    grml_status_feature promptinit 1
     grml_prompt_fallback
     function precmd () { (( ${+functions[vcs_info]} )) && vcs_info; }
 fi
@@ -2478,6 +2546,9 @@ else
     function precmd () { (( ${+functions[vcs_info]} )) && vcs_info; }
 fi
 
+# make sure to use right prompt only when not running a command
+is41 && setopt transient_rprompt
+
 # Terminal-title wizardry
 
 function ESC_print () {
@@ -2502,7 +2573,7 @@ function grml_reset_screen_title () {
     # see http://www.faqs.org/docs/Linux-mini/Xterm-Title.html
     [[ ${NOTITLE:-} -gt 0 ]] && return 0
     case $TERM in
-        (xterm*|rxvt*)
+        (xterm*|rxvt*|alacritty|foot)
             set_title ${(%):-"%n@%m: %~"}
             ;;
     esac
@@ -2539,7 +2610,7 @@ function grml_cmd_to_screen_title () {
 
 function grml_control_xterm_title () {
     case $TERM in
-        (xterm*|rxvt*)
+        (xterm*|rxvt*|alacritty|foot)
             set_title "${(%):-"%n@%m:"}" "$2"
             ;;
     esac
@@ -2604,6 +2675,11 @@ else
     alias ll='command ls -l'
     alias lh='command ls -hAl'
     alias l='command ls -l'
+fi
+
+# use ip from iproute2 with color support
+if ip -color=auto addr show dev lo >/dev/null 2>&1; then
+    alias ip='command ip -color=auto'
 fi
 
 if [[ -r /proc/mdstat ]]; then
@@ -2815,6 +2891,17 @@ graphic chipset."
         function debian2hd () {
             echo "Installing debian to harddisk is possible by using grml-debootstrap."
             return 1
+        }
+    fi
+
+    if check_com -c tmate && check_com -c qrencode ; then
+        function grml-remote-support() {
+            tmate -L grml-remote-support new -s grml-remote-support -d
+            tmate -L grml-remote-support wait tmate-ready
+            tmate -L grml-remote-support display -p '#{tmate_ssh}' | qrencode -t ANSI
+            echo "tmate session: $(tmate -L grml-remote-support display -p '#{tmate_ssh}')"
+            echo
+            echo "Scan this QR code and send it to your support team."
         }
     fi
 }
@@ -3226,7 +3313,14 @@ zrcautoload lookupinit && lookupinit
 # variables
 
 # set terminal property (used e.g. by msgid-chooser)
-export COLORTERM="yes"
+case "${COLORTERM}" in
+  truecolor)
+    # do not overwrite
+    ;;
+  *)
+    export COLORTERM="yes"
+    ;;
+esac
 
 # aliases
 
@@ -3493,6 +3587,11 @@ function simple-extract () {
                 USES_STDIN=true
                 USES_STDOUT=false
                 ;;
+            *tar.lrz)
+                DECOMP_CMD="lrzuntar"
+                USES_STDIN=false
+                USES_STDOUT=false
+                ;;
             *tar)
                 DECOMP_CMD="tar -xvf -"
                 USES_STDIN=true
@@ -3540,6 +3639,11 @@ function simple-extract () {
                 ;;
             *zst)
                 DECOMP_CMD="zstd -d -c -"
+                USES_STDIN=true
+                USES_STDOUT=true
+                ;;
+            *lrz)
+                DECOMP_CMD="lrunzip -"
                 USES_STDIN=true
                 USES_STDOUT=true
                 ;;
@@ -3829,6 +3933,8 @@ fi
 
 zrclocal
 
+unfunction grml_status_feature
+
 ## genrefcard.pl settings
 
 ### doc strings for external functions from files
@@ -3842,3 +3948,5 @@ zrclocal
 # Local variables:
 # mode: sh
 # End:
+export VOLTA_HOME="$HOME/.volta"
+export PATH="$VOLTA_HOME/bin:$PATH"
