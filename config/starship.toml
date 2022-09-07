@@ -14,7 +14,7 @@ $kubernetes\
 $character"""
 
 [aws]
-format = '[$symbol($profile)(\($region\))(\[$duration\])]($style)'
+format = '[$symbol($profile )(\($region\) )(\[$duration\] )]($style)'
 
 [character]
 success_symbol = "[❯](bold green)"
