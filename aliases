@@ -1,5 +1,8 @@
 alias takeover='tmux detach -a'
 
+alias ls='ls -G'
+alias ll='ls -lah'
+
 alias c='code'
 alias g='git'
 alias t='tmux'
