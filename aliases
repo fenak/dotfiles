@@ -7,6 +7,7 @@ alias c='code'
 alias g='git'
 alias t='tmux'
 alias tf='terraform'
+alias vim='nvim'
 
 alias k='kubectl'
 alias kx='f() { [ "$1" ] && kubectl config use-context $1 || kubectl config current-context ; } ; f'
